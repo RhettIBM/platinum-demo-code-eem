@@ -12,28 +12,6 @@ namespace=${1:-"cp4i"}
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 INSTALL_CP4I=${2:-true}
 
-function wait_for_pipeline_types() {
-  echo "Checking for pipeline types to be created...."
-  createdTime=""
-  wait_time=1
-  time=0
-
-  while [[ -z "$createdTime" ]]; do
-    createdTime=$(oc get crd triggertemplates.triggers.tekton.dev -o jsonpath={..status} 2>/dev/null)
-    ((time = time + $wait_time))
-    sleep $wait_time
-    if [ $time -ge 300 ]; then
-      echo "ERROR: Failed after waiting for 5 minutes"
-      exit 1
-    fi
-    if [ $time -ge 180 ]; then
-      echo "INFO: Waited over three minute"
-      exit 1
-    fi
-  done
-
-}
-
 function wait_for_operator_start() {
   subscriptionName=${1}
   installedNamespace=${2}
@@ -94,12 +72,6 @@ if [ "$INSTALL_CP4I" = true ]; then
   wait_for_operator_start ibm-integration-platform-navigator $namespace
 
 fi
-
-oc apply -f $SCRIPT_DIR/resources/pipeline-operator-subscription.yaml
-
-wait_for_operator_start openshift-pipelines-operator openshift-operators
-
-wait_for_pipeline_types
 
 cat $SCRIPT_DIR/resources/apic-operator-subscription.yaml_template |
   sed "s#{{NAMESPACE}}#$namespace#g;" >$SCRIPT_DIR/resources/apic-operator-subscription.yaml
